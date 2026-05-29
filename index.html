@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Loan Tracker Management System</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg:        #0b1a27;
+  --bg2:       #0d1f2d;
+  --bg3:       #112435;
+  --card:      #0f2030;
+  --card2:     #132840;
+  --green:     #00e676;
+  --green2:    #00c853;
+  --green3:    #4caf78;
+  --green-dim: #1a4d30;
+  --green-bg:  rgba(0,230,118,0.07);
+  --green-glow:rgba(0,230,118,0.15);
+  --border:    rgba(0,230,118,0.18);
+  --border2:   rgba(0,230,118,0.09);
+  --text:      #e8f5e9;
+  --text2:     #a5c9b5;
+  --text3:     #4a7a60;
+  --danger:    #ff5252;
+  --warn:      #ffab40;
+  --mq-h:      40px;
+}
+
+*,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+
+body {
+  font-family:'Inter', sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  overflow-x:hidden;
+}
+
+/* subtle grid texture */
+body::after {
+  content:'';
+  position:fixed; inset:0;
+  background-image:
+    linear-gradient(rgba(0,230,118,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,230,118,0.025) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events:none;
+  z-index:0;
+}
+
+/* ── MARQUEE ── */
+.mq {
+  position:fixed;
+  top:0; left:0; right:0;
+  height:var(--mq-h);
+  background:var(--bg2);
+  border-bottom:1px solid var(--border);
+  z-index:9999;
+  overflow:hidden;
+  display:flex;
+  align-items:center;
+}
+.mq::before, .mq::after {
+  content:''; position:absolute;
+  top:0; bottom:0; width:80px; z-index:2; pointer-events:none;
+}
+.mq::before { left:0;  background:linear-gradient(90deg, var(--bg2), transparent); }
+.mq::after  { right:0; background:linear-gradient(270deg, var(--bg2), transparent); }
+
+/* bottom glow line */
+.mq-line {
+  position:absolute;
+  bottom:0; left:0; right:0; height:2px;
+  background:linear-gradient(90deg, transparent, var(--green2), transparent);
+  box-shadow:0 0 10px var(--green2);
+}
+
+.mq-track {
+  display:flex;
+  width:max-content;
+  animation:mq 30s linear infinite;
+}
+.mq-track span {
+  white-space:nowrap;
+  padding:0 48px;
+  font-family:'Orbitron', monospace;
+  font-size:10px;
+  font-weight:700;
+  letter-spacing:0.28em;
+  color:var(--green);
+  text-transform:uppercase;
+}
+.mq-track span em {
+  font-style:normal;
+  font-family:'Share Tech Mono', monospace;
+  color:var(--text3);
+  font-size:10px;
+  letter-spacing:0.1em;
+}
+.mq-track span .sep { color:var(--green-dim); margin:0 10px; }
+@keyframes mq {
+  0%   { transform:translateX(0); }
+  100% { transform:translateX(-50%); }
+}
+
+/* ── PIN OVERLAY ── */
+#pinOverlay {
+  position:fixed; inset:0;
+  z-index:8000;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(11,26,39,0.92);
+  backdrop-filter:blur(10px);
+}
+
+.pin-card {
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:20px;
+  padding:44px 38px 36px;
+  width:360px; max-width:92vw;
+  text-align:center;
+  position:relative;
+  box-shadow:
+    0 0 0 1px var(--border2),
+    0 24px 60px rgba(0,0,0,0.5),
+    0 0 40px rgba(0,230,118,0.06);
+  animation:slideUp 0.5s cubic-bezier(0.16,1,0.3,1);
+}
+@keyframes slideUp {
+  from { opacity:0; transform:translateY(24px) scale(0.96); }
+  to   { opacity:1; transform:translateY(0) scale(1); }
+}
+
+.pin-icon {
+  width:60px; height:60px;
+  border-radius:16px;
+  background:linear-gradient(135deg, var(--green-dim), #0d3320);
+  border:1px solid var(--border);
+  margin:0 auto 18px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:26px;
+  box-shadow:0 8px 24px rgba(0,230,118,0.12);
+}
+
+.pin-badge {
+  display:inline-block;
+  background:var(--green-bg);
+  border:1px solid var(--border2);
+  border-radius:99px;
+  padding:4px 14px;
+  font-family:'Share Tech Mono', monospace;
+  font-size:9px;
+  letter-spacing:0.22em;
+  color:var(--green3);
+  text-transform:uppercase;
+  margin-bottom:14px;
+}
+
+.pin-title {
+  font-family:'Orbitron', monospace;
+  font-size:18px; font-weight:900;
+  color:var(--text);
+  line-height:1.25;
+  margin-bottom:6px;
+  letter-spacing:0.04em;
+}
+
+.pin-sub {
+  font-size:12px;
+  color:var(--text3);
+  margin-bottom:28px;
+  line-height:1.6;
+  letter-spacing:0.03em;
+}
+.pin-sub strong { color:var(--green3); }
+
+.pin-dots {
+  display:flex; justify-content:center; gap:10px;
+  margin-bottom:22px;
+}
+.pin-dot {
+  width:13px; height:13px;
+  border-radius:4px;
+  border:1.5px solid var(--text3);
+  background:transparent;
+  transition:all 0.15s ease;
+}
+.pin-dot.on {
+  background:var(--green);
+  border-color:var(--green);
+  box-shadow:0 0 10px rgba(0,230,118,0.6);
+}
+
+.pin-keypad {
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:9px;
+  margin-bottom:14px;
+}
+.pk {
+  background:var(--bg3);
+  border:1px solid var(--border2);
+  border-radius:12px;
+  height:54px;
+  font-family:'Share Tech Mono', monospace;
+  font-size:22px;
+  color:var(--text2);
+  cursor:pointer;
+  transition:all 0.13s ease;
+}
+.pk:hover {
+  background:var(--green-bg);
+  border-color:var(--border);
+  color:var(--green);
+  box-shadow:0 0 16px rgba(0,230,118,0.1);
+}
+.pk:active { transform:scale(0.94); }
+.pk.del {
+  font-family:'Inter', sans-serif;
+  font-size:12px;
+  font-weight:600;
+  letter-spacing:0.06em;
+  color:var(--text3);
+}
+.pk.z { grid-column:2; }
+
+.pin-err {
+  font-family:'Share Tech Mono', monospace;
+  color:var(--danger);
+  font-size:11px;
+  letter-spacing:0.08em;
+  height:16px;
+  margin-top:4px;
+}
+.pin-copy { font-size:11px; color:var(--text3); margin-top:18px; letter-spacing:0.06em; }
+
+/* ── MAIN ── */
+.main {
+  padding-top:calc(var(--mq-h) + 24px);
+  padding-bottom:60px;
+  min-height:100vh;
+  position:relative; z-index:1;
+}
+.wrap { max-width:900px; margin:0 auto; padding:0 18px; }
+
+/* ── PAGE HEADER ── */
+.pg-head {
+  padding:32px 0 24px;
+  border-bottom:1px solid var(--border2);
+  margin-bottom:24px;
+}
+.pg-tag {
+  font-family:'Share Tech Mono', monospace;
+  font-size:10px;
+  letter-spacing:0.2em;
+  color:var(--text3);
+  text-transform:uppercase;
+  margin-bottom:10px;
+}
+.pg-tag::before { content:'// '; color:var(--green-dim); }
+.pg-head h1 {
+  font-family:'Orbitron', monospace;
+  font-size:clamp(20px, 4vw, 34px);
+  font-weight:900;
+  color:var(--text);
+  letter-spacing:0.05em;
+  line-height:1.2;
+}
+.pg-head h1 span { color:var(--green); }
+.pg-head p {
+  font-size:12px;
+  color:var(--text3);
+  margin-top:8px;
+  letter-spacing:0.04em;
+}
+.blink { animation:blink 1.1s step-end infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+/* ── CARD ── */
+.card {
+  background:var(--card);
+  border:1px solid var(--border2);
+  border-radius:16px;
+  padding:24px;
+  margin-bottom:16px;
+  transition:border-color 0.2s, box-shadow 0.2s;
+  position:relative;
+  overflow:hidden;
+}
+.card:hover {
+  border-color:var(--border);
+  box-shadow:0 8px 32px rgba(0,0,0,0.2), 0 0 20px rgba(0,230,118,0.04);
+}
+/* accent top strip */
+.card::before {
+  content:'';
+  position:absolute;
+  top:0; left:24px; right:24px; height:1px;
+  background:linear-gradient(90deg, transparent, var(--green-dim), transparent);
+}
+
+.card-title {
+  font-family:'Orbitron', monospace;
+  font-size:9px; font-weight:700;
+  letter-spacing:0.28em;
+  color:var(--green3);
+  text-transform:uppercase;
+  margin-bottom:20px;
+  display:flex; align-items:center; gap:10px;
+}
+.card-title .dot {
+  width:7px; height:7px;
+  border-radius:50%;
+  background:var(--green);
+  box-shadow:0 0 8px var(--green);
+  animation:pulse 2s ease-in-out infinite;
+  flex-shrink:0;
+}
+@keyframes pulse {
+  0%,100% { box-shadow:0 0 8px var(--green); opacity:1; }
+  50%      { box-shadow:0 0 4px var(--green); opacity:0.5; }
+}
+
+/* ── FORM ── */
+.fg { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+@media(max-width:520px){ .fg{ grid-template-columns:1fr; } }
+.fgroup { display:flex; flex-direction:column; gap:6px; }
+.fgroup.full { grid-column:1/-1; }
+
+.flabel {
+  font-size:10px; font-weight:600;
+  letter-spacing:0.14em;
+  color:var(--text3);
+  text-transform:uppercase;
+}
+
+.finput, .fselect {
+  background:var(--bg3);
+  border:1px solid var(--border2);
+  border-radius:10px;
+  padding:11px 14px;
+  font-family:'Share Tech Mono', monospace;
+  font-size:13px;
+  color:var(--text);
+  outline:none;
+  transition:all 0.18s;
+  width:100%;
+  caret-color:var(--green);
+}
+.finput:focus, .fselect:focus {
+  border-color:var(--green2);
+  background:rgba(0,230,118,0.04);
+  box-shadow:0 0 0 3px rgba(0,230,118,0.07);
+}
+.finput::placeholder { color:var(--text3); font-size:12px; }
+.fselect option { background:var(--bg2); color:var(--text); }
+
+/* ── BUTTONS ── */
+.btn {
+  display:inline-flex; align-items:center; gap:8px;
+  padding:11px 22px;
+  border-radius:10px;
+  font-family:'Inter', sans-serif;
+  font-size:13px; font-weight:600;
+  letter-spacing:0.04em;
+  cursor:pointer; border:none;
+  transition:all 0.15s ease;
+}
+.btn-green {
+  background:var(--green);
+  color:#0b1a27;
+  box-shadow:0 4px 16px rgba(0,230,118,0.25);
+}
+.btn-green:hover {
+  background:#26ffaa;
+  box-shadow:0 6px 24px rgba(0,230,118,0.35);
+  transform:translateY(-1px);
+}
+.btn-ghost {
+  background:var(--bg3);
+  border:1px solid var(--border2);
+  color:var(--text2);
+}
+.btn-ghost:hover { border-color:var(--border); color:var(--text); background:var(--card2); }
+.btn-danger {
+  background:rgba(255,82,82,0.08);
+  border:1px solid rgba(255,82,82,0.2);
+  color:var(--danger);
+}
+.btn-danger:hover { background:rgba(255,82,82,0.14); border-color:var(--danger); }
+
+/* ── STATS ── */
+.stats {
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:12px;
+  margin-bottom:16px;
+}
+@media(max-width:600px){ .stats{ grid-template-columns:repeat(2,1fr); } }
+
+.stat {
+  background:var(--card);
+  border:1px solid var(--border2);
+  border-radius:14px;
+  padding:18px 16px;
+  position:relative;
+  overflow:hidden;
+  transition:border-color 0.2s, transform 0.2s;
+}
+.stat:hover { border-color:var(--border); transform:translateY(-2px); }
+.stat::after {
+  content:'';
+  position:absolute;
+  bottom:0; left:0; right:0; height:2px;
+  background:linear-gradient(90deg, transparent, var(--green2), transparent);
+  opacity:0.4;
+}
+.stat-label {
+  font-size:9px; font-weight:700;
+  letter-spacing:0.18em;
+  color:var(--text3);
+  text-transform:uppercase;
+  margin-bottom:10px;
+  font-family:'Share Tech Mono', monospace;
+}
+.stat-val {
+  font-family:'Orbitron', monospace;
+  font-size:18px; font-weight:900;
+  color:var(--green);
+  line-height:1;
+  letter-spacing:0.02em;
+}
+.stat-val.sm { font-size:14px; }
+
+/* ── PROGRESS ── */
+.prog-meta {
+  display:flex; justify-content:space-between;
+  font-size:11px; color:var(--text3);
+  letter-spacing:0.06em;
+  margin-bottom:10px;
+  font-family:'Share Tech Mono', monospace;
+}
+.prog-track {
+  height:10px;
+  background:var(--bg3);
+  border:1px solid var(--border2);
+  border-radius:99px;
+  overflow:hidden;
+}
+.prog-fill {
+  height:100%;
+  background:linear-gradient(90deg, var(--green2), var(--green));
+  border-radius:99px;
+  box-shadow:0 0 10px rgba(0,230,118,0.4);
+  transition:width 0.9s cubic-bezier(0.16,1,0.3,1);
+  position:relative;
+}
+.prog-fill::after {
+  content:'';
+  position:absolute; top:0; right:0; bottom:0; width:40px;
+  background:linear-gradient(90deg, transparent, rgba(255,255,255,0.25));
+  animation:shim 2.5s ease-in-out infinite;
+}
+@keyframes shim {
+  0%,100%{ opacity:0; }
+  50%{ opacity:1; }
+}
+
+/* ── LOAN BANNER ── */
+.loan-banner {
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:16px 22px;
+  margin-bottom:16px;
+  display:flex; justify-content:space-between; align-items:center;
+  flex-wrap:wrap; gap:12px;
+  box-shadow:0 0 20px rgba(0,230,118,0.04);
+}
+.lb-tag {
+  font-size:9px; font-weight:700;
+  letter-spacing:0.18em;
+  color:var(--text3);
+  text-transform:uppercase;
+  margin-bottom:4px;
+  font-family:'Share Tech Mono', monospace;
+}
+.lb-name {
+  font-family:'Orbitron', monospace;
+  font-size:16px; font-weight:700;
+  color:var(--green);
+  letter-spacing:0.04em;
+}
+
+/* ── TABLE ── */
+.tbl-wrap { overflow-x:auto; margin:0 -4px; }
+table { width:100%; border-collapse:collapse; min-width:460px; }
+thead tr { border-bottom:1px solid var(--border2); }
+th {
+  padding:9px 14px;
+  text-align:left;
+  font-family:'Share Tech Mono', monospace;
+  font-size:9px; font-weight:700;
+  letter-spacing:0.18em;
+  color:var(--text3);
+  text-transform:uppercase;
+}
+td {
+  padding:10px 14px;
+  font-size:12px;
+  color:var(--text2);
+  border-bottom:1px solid rgba(0,230,118,0.04);
+  letter-spacing:0.02em;
+}
+tr:last-child td { border-bottom:none; }
+tbody tr:hover td { background:rgba(0,230,118,0.03); color:var(--text); }
+
+.row-no   { color:var(--text3); font-family:'Share Tech Mono', monospace; font-size:11px; }
+.row-mo   { color:var(--text); font-weight:600; }
+.row-amt  { color:var(--green3); font-family:'Share Tech Mono', monospace; }
+
+.ssel {
+  background:transparent;
+  border:1px solid;
+  border-radius:8px;
+  font-family:'Inter', sans-serif;
+  font-size:11px; font-weight:600;
+  cursor:pointer; outline:none;
+  padding:5px 10px;
+  letter-spacing:0.04em;
+  transition:all 0.15s;
+}
+.ssel.paid   { color:#00e676; border-color:rgba(0,230,118,0.25); background:rgba(0,230,118,0.06); }
+.ssel.paid:hover { background:rgba(0,230,118,0.12); }
+.ssel.unpaid { color:#ff5252; border-color:rgba(255,82,82,0.2); background:rgba(255,82,82,0.05); }
+.ssel.unpaid:hover { background:rgba(255,82,82,0.1); }
+.ssel option { background:var(--bg2); color:var(--text); }
+
+/* ── ACTION ROW ── */
+.act {
+  display:flex; flex-wrap:wrap; gap:10px;
+  justify-content:flex-end;
+  margin-top:16px;
+  padding-top:16px;
+  border-top:1px solid var(--border2);
+}
+
+/* ── FOOTER ── */
+footer {
+  text-align:center;
+  padding:26px 20px;
+  border-top:1px solid var(--border2);
+  margin-top:24px;
+  position:relative;
+}
+footer::before {
+  content:'';
+  position:absolute;
+  top:0; left:50%; transform:translateX(-50%);
+  width:160px; height:1px;
+  background:linear-gradient(90deg, transparent, var(--green2), transparent);
+  box-shadow:0 0 8px var(--green2);
+}
+.ft-brand {
+  font-family:'Orbitron', monospace;
+  font-size:12px; font-weight:700;
+  color:var(--text2);
+  letter-spacing:0.18em;
+  text-transform:uppercase;
+  margin-bottom:5px;
+}
+.ft-copy { font-size:11px; color:var(--text3); letter-spacing:0.08em; }
+
+/* ── TOAST ── */
+#toast {
+  position:fixed;
+  bottom:24px; right:20px;
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:13px 18px;
+  font-size:12px; font-weight:500;
+  letter-spacing:0.04em;
+  color:var(--text);
+  z-index:9000;
+  box-shadow:0 8px 32px rgba(0,0,0,0.4), 0 0 16px rgba(0,230,118,0.08);
+  transform:translateY(60px); opacity:0;
+  transition:all 0.3s cubic-bezier(0.16,1,0.3,1);
+  max-width:280px;
+}
+#toast.show { transform:translateY(0); opacity:1; }
+#toast.ok   { border-color:rgba(0,230,118,0.3); }
+#toast.err  { border-color:rgba(255,82,82,0.3); }
+
+/* ── UTILS ── */
+.hidden { display:none !important; }
+::-webkit-scrollbar { width:5px; height:5px; }
+::-webkit-scrollbar-track  { background:var(--bg); }
+::-webkit-scrollbar-thumb  { background:var(--green-dim); border-radius:99px; }
+::-webkit-scrollbar-thumb:hover { background:var(--green2); }
+::selection { background:rgba(0,230,118,0.18); color:var(--green); }
+</style>
+</head>
+<body>
+
+<!-- ═══ MARQUEE ═══ -->
+<div class="mq">
+  <div class="mq-track" id="mqT"></div>
+  <div class="mq-line"></div>
+</div>
+
+<!-- ═══ PIN OVERLAY ═══ -->
+<div id="pinOverlay">
+  <div class="pin-card">
+    <div class="pin-icon">🔐</div>
+    <div class="pin-badge">ACCESS CONTROL SYSTEM</div>
+    <div class="pin-title">LOAN TRACKER<br>MANAGEMENT SYSTEM</div>
+    <div class="pin-sub">
+      Selamat Datang — <strong>Masukkan PIN 6 digit</strong><br>untuk mengakses sistem
+    </div>
+    <div class="pin-dots" id="pinDots">
+      <div class="pin-dot" id="d0"></div>
+      <div class="pin-dot" id="d1"></div>
+      <div class="pin-dot" id="d2"></div>
+      <div class="pin-dot" id="d3"></div>
+      <div class="pin-dot" id="d4"></div>
+      <div class="pin-dot" id="d5"></div>
+    </div>
+    <div class="pin-keypad">
+      <button class="pk" onclick="pp('1')">1</button>
+      <button class="pk" onclick="pp('2')">2</button>
+      <button class="pk" onclick="pp('3')">3</button>
+      <button class="pk" onclick="pp('4')">4</button>
+      <button class="pk" onclick="pp('5')">5</button>
+      <button class="pk" onclick="pp('6')">6</button>
+      <button class="pk" onclick="pp('7')">7</button>
+      <button class="pk" onclick="pp('8')">8</button>
+      <button class="pk" onclick="pp('9')">9</button>
+      <button class="pk del" onclick="pd()">⌫ Hapus</button>
+      <button class="pk z"   onclick="pp('0')">0</button>
+    </div>
+    <div class="pin-err" id="pinErr"></div>
+    <div class="pin-copy">© Gentara Anugrah</div>
+  </div>
+</div>
+
+<!-- ═══ MAIN APP ═══ -->
+<div class="main hidden" id="mainApp">
+  <div class="wrap">
+
+    <!-- Page Header -->
+    <div class="pg-head">
+      <div class="pg-tag">LOAN MONITORING SYSTEM — INSTANCE 01</div>
+      <h1>LOAN <span>TRACKER</span><br>MANAGEMENT SYSTEM<span class="blink">_</span></h1>
+      <p>Monitor progres angsuran, sisa tenor, dan histori pembayaran</p>
+    </div>
+
+    <!-- Setup Card -->
+    <div class="card" id="setupCard">
+      <div class="card-title"><span class="dot"></span>INISIALISASI DATA PINJAMAN</div>
+      <div class="fg">
+        <div class="fgroup full">
+          <label class="flabel">Nama Pinjaman / Kreditur</label>
+          <input class="finput" id="loanName" placeholder="KPR BRI / Koperasi Maju"/>
+        </div>
+        <div class="fgroup">
+          <label class="flabel">Total Pinjaman (Rp)</label>
+          <input class="finput" id="loanTotal" type="number" placeholder="50000000"/>
+        </div>
+        <div class="fgroup">
+          <label class="flabel">Angsuran per Bulan (Rp)</label>
+          <input class="finput" id="loanInst" type="number" placeholder="1500000"/>
+        </div>
+        <div class="fgroup">
+          <label class="flabel">Bulan Mulai Cicilan</label>
+          <select class="fselect" id="startMon">
+            <option value="">— Pilih Bulan —</option>
+            <option value="1">01 — Januari</option>
+            <option value="2">02 — Februari</option>
+            <option value="3">03 — Maret</option>
+            <option value="4">04 — April</option>
+            <option value="5">05 — Mei</option>
+            <option value="6">06 — Juni</option>
+            <option value="7">07 — Juli</option>
+            <option value="8">08 — Agustus</option>
+            <option value="9">09 — September</option>
+            <option value="10">10 — Oktober</option>
+            <option value="11">11 — November</option>
+            <option value="12">12 — Desember</option>
+          </select>
+        </div>
+        <div class="fgroup">
+          <label class="flabel">Tahun Mulai Cicilan</label>
+          <input class="finput" id="startYr" type="number" placeholder="2024" min="2020" max="2035"/>
+        </div>
+      </div>
+      <div style="margin-top:22px;">
+        <button class="btn btn-green" onclick="saveLoan()">Simpan &amp; Mulai Tracking</button>
+      </div>
+    </div>
+
+    <!-- Dashboard -->
+    <div id="dash" class="hidden">
+
+      <!-- Loan Banner -->
+      <div class="loan-banner">
+        <div>
+          <div class="lb-tag">// Pinjaman Aktif</div>
+          <div class="lb-name" id="dspName">—</div>
+        </div>
+        <button class="btn btn-danger" onclick="resetLoan()" style="font-size:12px;padding:9px 16px;">Reset Data</button>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-label">Total Pinjaman</div>
+          <div class="stat-val sm" id="sTotal">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Sudah Dibayar</div>
+          <div class="stat-val sm" id="sPaid">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Sisa Pinjaman</div>
+          <div class="stat-val sm" id="sRemain">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Sisa Tenor</div>
+          <div class="stat-val" id="sTenor">—</div>
+        </div>
+      </div>
+
+      <!-- Progress -->
+      <div class="card">
+        <div class="card-title"><span class="dot"></span>PROGRESS PELUNASAN</div>
+        <div class="prog-meta">
+          <span id="pPct">0.00%</span>
+          <span id="pDet">0 / 36 BULAN LUNAS</span>
+        </div>
+        <div class="prog-track">
+          <div class="prog-fill" id="pFill" style="width:0%"></div>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="card">
+        <div class="card-title"><span class="dot"></span>HISTORI ANGSURAN — TENOR 36 BULAN</div>
+        <div class="tbl-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>No</th>
+                <th>Bulan</th>
+                <th>Jumlah Angsuran</th>
+                <th>Status Pembayaran</th>
+              </tr>
+            </thead>
+            <tbody id="tBody"></tbody>
+          </table>
+        </div>
+        <div class="act">
+          <button class="btn btn-ghost" onclick="doImport()">Import JSON</button>
+          <button class="btn btn-green"  onclick="doExport()">Export JSON</button>
+        </div>
+        <input type="file" id="fileIn" accept=".json" class="hidden" onchange="onImport(event)"/>
+      </div>
+
+    </div>
+  </div>
+
+  <footer>
+    <div class="ft-brand">Loan Tracker Management System</div>
+    <div class="ft-copy">© Gentara Anugrah — All Rights Reserved</div>
+  </footer>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const PIN_H = btoa('700115');
+const SK    = 'ltms_v3';
+const TENOR = 36;
+const MONS  = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+
+let buf = '';
+
+// ── MARQUEE ──
+(function(){
+  const seg = `<span>LOAN TRACKER MANAGEMENT SYSTEM<span class="sep">|</span><em>© Gentara Anugrah</em><span class="sep">|</span></span>`;
+  let h = '';
+  for(let i=0;i<10;i++) h += seg;
+  const t = document.getElementById('mqT');
+  t.innerHTML = h + h;
+})();
+
+// ── PIN ──
+function pp(d){
+  if(buf.length>=6) return;
+  buf += d; dots();
+  if(buf.length===6) setTimeout(check,100);
+}
+function pd(){
+  buf = buf.slice(0,-1); dots();
+  document.getElementById('pinErr').textContent='';
+}
+function dots(){
+  for(let i=0;i<6;i++)
+    document.getElementById('d'+i).classList.toggle('on', i < buf.length);
+}
+function check(){
+  if(btoa(buf)===PIN_H){
+    const ov = document.getElementById('pinOverlay');
+    ov.style.transition = 'all 0.55s ease';
+    ov.style.opacity = '0';
+    ov.style.transform = 'scale(1.04)';
+    setTimeout(()=>{ ov.classList.add('hidden'); }, 550);
+    document.getElementById('mainApp').classList.remove('hidden');
+    loadApp();
+  } else {
+    document.getElementById('pinErr').textContent = 'PIN tidak valid. Silakan coba lagi.';
+    buf = ''; dots();
+  }
+}
+document.addEventListener('keydown', e=>{
+  if(document.getElementById('pinOverlay').classList.contains('hidden')) return;
+  if(e.key>='0' && e.key<='9') pp(e.key);
+  if(e.key==='Backspace') pd();
+});
+
+// ── STORAGE ──
+const gd = () => JSON.parse(localStorage.getItem(SK)||'null');
+const sd = d  => localStorage.setItem(SK, JSON.stringify(d));
+
+// ── LOAD ──
+function loadApp(){
+  const d = gd();
+  d && d.loan ? showDash(d) : showSetup();
+}
+function showSetup(){
+  document.getElementById('setupCard').classList.remove('hidden');
+  document.getElementById('dash').classList.add('hidden');
+}
+function showDash(d){
+  document.getElementById('setupCard').classList.add('hidden');
+  document.getElementById('dash').classList.remove('hidden');
+  render(d);
+}
+
+// ── SAVE ──
+function saveLoan(){
+  const name = document.getElementById('loanName').value.trim();
+  const tot  = parseFloat(document.getElementById('loanTotal').value);
+  const inst = parseFloat(document.getElementById('loanInst').value);
+  const mon  = parseInt(document.getElementById('startMon').value);
+  const yr   = parseInt(document.getElementById('startYr').value);
+  if(!name||!tot||!inst||!mon||!yr){ toast('Semua field wajib diisi','err'); return; }
+  const payments = [];
+  for(let i=0;i<TENOR;i++){
+    const m = ((mon-1+i)%12)+1;
+    const y = yr + Math.floor((mon-1+i)/12);
+    payments.push({month:m, year:y, paid:false});
+  }
+  const data = { loan:{name,total:tot,inst,startMonth:mon,startYear:yr}, payments };
+  sd(data);
+  toast('Data pinjaman berhasil disimpan','ok');
+  showDash(data);
+}
+
+// ── RENDER ──
+function render(d){
+  const {loan, payments} = d;
+  const pN  = payments.filter(p=>p.paid).length;
+  const pAmt= pN * loan.inst;
+  const rem = Math.max(0, loan.total - pAmt);
+  const pct = (pN/TENOR*100).toFixed(2);
+
+  document.getElementById('dspName').textContent = loan.name;
+  document.getElementById('sTotal').textContent  = fmt(loan.total);
+  document.getElementById('sPaid').textContent   = fmt(pAmt);
+  document.getElementById('sRemain').textContent = fmt(rem);
+  document.getElementById('sTenor').textContent  = (TENOR-pN)+' Bln';
+  document.getElementById('pPct').textContent    = pct+'%';
+  document.getElementById('pDet').textContent    = pN+' / '+TENOR+' BULAN LUNAS';
+  document.getElementById('pFill').style.width   = pct+'%';
+
+  const tb = document.getElementById('tBody');
+  tb.innerHTML = '';
+  payments.forEach((p,i)=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="row-no">${String(i+1).padStart(2,'0')}</td>
+      <td class="row-mo">${MONS[p.month-1]} ${p.year}</td>
+      <td class="row-amt">${fmt(loan.inst)}</td>
+      <td>
+        <select class="ssel ${p.paid?'paid':'unpaid'}" onchange="toggle(${i},this)">
+          <option value="1" ${p.paid?'selected':''}>✓ Sudah Bayar</option>
+          <option value="0" ${!p.paid?'selected':''}>✗ Belum Bayar</option>
+        </select>
+      </td>`;
+    tb.appendChild(tr);
+  });
+}
+
+function toggle(i, sel){
+  const d = gd();
+  d.payments[i].paid = sel.value==='1';
+  sd(d);
+  sel.className = 'ssel '+(d.payments[i].paid?'paid':'unpaid');
+  render(d);
+  toast(d.payments[i].paid ? 'Angsuran ditandai lunas' : 'Status dikembalikan','ok');
+}
+
+// ── RESET ──
+function resetLoan(){
+  if(!confirm('Hapus semua data pinjaman? Aksi ini tidak dapat dibatalkan.')) return;
+  localStorage.removeItem(SK);
+  showSetup();
+  toast('Data berhasil direset','ok');
+}
+
+// ── EXPORT / IMPORT ──
+function doExport(){
+  const d = gd();
+  if(!d){ toast('Tidak ada data untuk diekspor','err'); return; }
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(d,null,2)],{type:'application/json'}));
+  a.download = 'loan-tracker-backup.json';
+  a.click(); URL.revokeObjectURL(a.href);
+  toast('File JSON berhasil diekspor','ok');
+}
+function doImport(){ document.getElementById('fileIn').click(); }
+function onImport(e){
+  const f = e.target.files[0]; if(!f) return;
+  const r = new FileReader();
+  r.onload = ev => {
+    try{
+      const d = JSON.parse(ev.target.result);
+      if(!d.loan||!d.payments) throw 0;
+      sd(d); showDash(d); toast('Data berhasil diimpor','ok');
+    }catch{ toast('File JSON tidak valid','err'); }
+    e.target.value='';
+  };
+  r.readAsText(f);
+}
+
+// ── UTILS ──
+function fmt(n){
+  if(n>=1e9) return 'Rp'+(n/1e9).toFixed(2)+'M';
+  if(n>=1e6) return 'Rp'+(n/1e6).toFixed(1)+'Jt';
+  return 'Rp'+n.toLocaleString('id-ID');
+}
+let tT;
+function toast(msg, type='ok'){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'show '+(type==='err'?'err':'ok');
+  clearTimeout(tT);
+  tT = setTimeout(()=>{ t.className=''; }, 3200);
+}
+</script>
+</body>
+</html>
